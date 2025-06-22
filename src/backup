@@ -1,0 +1,359 @@
+import React, { useRef, useEffect, useState } from "react";
+import { Stage, Layer, Group, Image, Circle, Line } from "react-konva";
+import Fuse from "fuse.js";
+import map from "./assets/map.svg";
+import mapGround from "./assets/map-ground.svg"
+import graphData from "./assets/data.json"
+import SearchBar from "./SearchBar";
+import Konva from "konva";
+import pin from "./assets/pin.svg"
+
+import Map from "./Map";
+
+import {findNearestNode, getNodeById, dijkstra } from './graph'
+
+const fuse = new Fuse(graphData.landmarks,
+  {
+    keys: ["name"],
+    threshold: 0.3
+  }
+)
+
+const MAP_WIDTH = 1080
+const MAP_HEIGHT = 648
+const PIN_SIZE = 15
+
+
+function App() {
+  const stageRef = useRef();
+  const graphGroupRef = useRef();
+  const images = useRef()
+  const initDone = useRef(false)
+
+  const [pinLoc, setPinLoc] = useState(null)
+  function changePinLoc(node) {
+    setPinLoc({...node, x: node.x - PIN_SIZE / 2, y: node.y - PIN_SIZE})
+  }
+
+  const [bgImage, setBgImage] = useState(null);
+  const [stageSize, setStageSize] = useState({
+    width: window.innerWidth,
+  });
+
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+
+  const divRef = useRef(null)
+  const [height, setHeight] = useState(0)
+
+  useEffect(() => {
+    setHeight(divRef.current.offsetHeight)
+  }, [])
+
+  function clampScale(scale) {
+    const stage = stageRef.current
+    scale = Math.max(scale, stage.width() / MAP_WIDTH) 
+    scale = Math.max(scale, stage.height() / MAP_HEIGHT)
+    return scale
+  }
+
+  function clampPosition({x, y}, currentScale) {
+    const stage = stageRef.current
+    const group = graphGroupRef.current
+    if (currentScale === undefined) {
+      currentScale = group.scaleX()
+    }
+    x = Math.max(Math.min(0, x),
+          stage.width() - MAP_WIDTH * currentScale)
+    y = Math.max(Math.min(0, y),
+          stage.height() - MAP_HEIGHT * currentScale)
+    return {x: x, y: y}
+  }
+
+  function changeScale(scale) {
+    const stage = stageRef.current
+    const group = graphGroupRef.current
+    scale = clampScale(scale)
+    let next = bgImage
+    if (scale * 250 >= stage.height()) {
+      next = images.current[1]
+    } else {
+      next = images.current[0]
+    }
+    group.scale({ x: scale, y: scale });
+    setBgImage(next)
+  }
+
+  function changePosition(x, y) {
+    const group = graphGroupRef.current
+
+    const pos = clampPosition({x: x, y: y})
+
+    console.log(x, y, "moving to")
+    group.position(pos)
+  }
+
+  function getMinScaleToCenter(node) {
+    const stage = stageRef.current
+    const minScaleX1 = stage.width() / (2 * node.x)
+    const minScaleX2 = -stage.width() / (2 * (node.x - MAP_WIDTH))
+
+    const minScaleY1 = stage.height() / (2 * node.y)
+    const minScaleY2 = -stage.height() / (2 * (node.y - MAP_HEIGHT))
+
+    return Math.max(
+      minScaleX1,
+      minScaleX2,
+      minScaleY1,
+      minScaleY2
+    )
+  }
+
+  // Handle bottom sheet actions
+  const handleCloseBottomSheet = () => {
+    setPinLoc(null);
+  };
+
+  const handleNavigate = (location) => {
+    console.log("Navigate to:", location);
+    // Add your navigation logic here
+    alert(`Navigating to: ${location.name || 'Selected Location'}`);
+  };
+
+  useEffect(() => {
+    const img = new window.Image();
+    img.src = map;
+
+    const img2 = new window.Image()
+    img2.src = mapGround
+
+    const img3 = new window.Image(PIN_SIZE, PIN_SIZE)
+    img3.src = pin
+
+    images.current = [img, img2, img3]
+
+    img.onload = () => setBgImage(img);
+  }, []);
+
+  useEffect(() => {
+    if (!bgImage || !graphGroupRef.current || !stageRef.current) return;
+    if (initDone.current) return
+
+    const path = dijkstra(828, 800)
+
+    const points = []
+    for (const node of path) {
+      points.push(node.x)
+      points.push(node.y)
+    }
+    console.log(points)
+    setEdges([<Line points={points} stroke='#90D5FF' strokeWidth={1}/>])
+
+    initDone.current = true
+
+    const stage = stageRef.current;
+    const group = graphGroupRef.current;
+    stage.height(document.querySelector("#container").offsetHeight);
+
+    const scaleX = stage.width() / MAP_WIDTH;
+    const scaleY = stage.height() / MAP_HEIGHT;
+    const minScale = Math.max(scaleX, scaleY);
+
+    group.scale({ x: minScale, y: minScale });
+
+    let lastDist = null;
+    let lastPos = null;
+    let clickPos = null;
+
+    let isDragging = false;
+
+    const getDistance = (p1, p2) =>
+      Math.sqrt(
+        Math.pow(p1.clientX - p2.clientX, 2) +
+          Math.pow(p1.clientY - p2.clientY, 2)
+      );
+
+    const getCenter = (p1, p2) => ({
+      x: (p1.clientX + p2.clientX) / 2,
+      y: (p1.clientY + p2.clientY) / 2,
+    });
+
+    stage.on("touchstart", (e) => {
+      if (e.evt.touches.length === 2) {
+        lastDist = getDistance(e.evt.touches[0], e.evt.touches[1]);
+      } else if (e.evt.touches.length === 1) {
+        lastPos = stage.getPointerPosition();
+        clickPos = stage.getPointerPosition();
+      }
+    });
+
+    stage.on("touchmove", (e) => {
+      const pointer = stage.getPointerPosition();
+
+      if (e.evt.touches.length === 2) {
+        const dist = getDistance(e.evt.touches[0], e.evt.touches[1]);
+        const center = getCenter(e.evt.touches[0], e.evt.touches[1]);
+
+        if (!lastDist) return (lastDist = dist);
+
+        const scaleBy = dist / lastDist;
+        const oldScale = group.scaleX();
+
+        let newScale = oldScale * scaleBy;
+
+        const mousePointTo = {
+          x: (center.x - group.x()) / oldScale,
+          y: (center.y - group.y()) / oldScale,
+        };
+
+        changePosition(center.x - mousePointTo.x * newScale, center.y - mousePointTo.y * newScale)
+        changeScale(newScale)
+
+        lastDist = dist;
+        stage.batchDraw();
+      } else if (e.evt.touches.length === 1 && lastPos) {
+        const dx = pointer.x - lastPos.x;
+        const dy = pointer.y - lastPos.y;
+
+        changePosition(group.x() + dx, group.y() + dy)
+        lastPos = pointer;
+        stage.batchDraw();
+      }
+    });
+
+    stage.on("touchend", () => {
+      lastDist = null;
+      lastPos = null;
+      const pos = stage.getPointerPosition()
+      if (pos.x == clickPos.x && pos.y == clickPos.y) {
+        const transform = group.getAbsoluteTransform().copy().invert();
+        const obj_pos = transform.point(pos);
+
+        const node = findNearestNode(obj_pos)
+
+        changePinLoc(node)
+      }      
+    });
+
+    stage.on("wheel", (e) => {
+      e.evt.preventDefault();
+
+      const scaleBy = 1.05;
+      const oldScale = group.scaleX();
+      const pointer = stage.getPointerPosition();
+      const direction = e.evt.deltaY > 0 ? -1 : 1;
+      let newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+      const mousePointTo = {
+        x: (pointer.x - group.x()) / oldScale,
+        y: (pointer.y - group.y()) / oldScale,
+      };
+
+      changePosition(pointer.x - mousePointTo.x * newScale, pointer.y - mousePointTo.y * newScale)
+      changeScale(newScale)
+
+      stage.batchDraw();
+    });
+
+    stage.on("mousedown", (e) => {
+      if (e.evt.button == 0) {
+        isDragging = true;
+        lastPos = stage.getPointerPosition();
+        clickPos = stage.getPointerPosition()
+      }
+    });
+
+    stage.on("mousemove", () => {
+      if (!isDragging) return;
+
+      const pos = stage.getPointerPosition();
+      const dx = pos.x - lastPos.x;
+      const dy = pos.y - lastPos.y;
+
+      changePosition(group.x() + dx, group.y() + dy)
+
+      lastPos = pos;
+
+      stage.batchDraw();
+    });
+    stage.on("mouseup", (e) => {
+      if (e.evt.button == 0) {
+        const pos = stage.getPointerPosition()
+        if (pos.x == clickPos.x && pos.y == clickPos.y) {
+          const transform = group.getAbsoluteTransform().copy().invert();
+          const obj_pos = transform.point(pos);
+
+          const node = findNearestNode(obj_pos)
+
+          changePinLoc(node)
+        }
+        isDragging = false;
+      }
+    });
+  }, [bgImage]);
+
+  const [searchValue, setSearchValue] = useState("")
+  return (
+    <>
+      <div
+        ref={divRef}
+        id="container"
+        style={{ height: "80vh" }}
+      >
+        {/* <SearchBar value={searchValue} onChange={(value) => {
+          setSearchValue(value)
+          const results = fuse.search(value)
+          return results.map((x) => x.item)
+        }}
+
+        onResultClick={(id) => {
+          setSearchValue("")
+          const node = getNodeById(id)
+          const scale = getMinScaleToCenter(node)
+
+          const targetScale = clampScale(scale); 
+
+          const targetX = -node.x * targetScale + stageRef.current.width() / 2;
+          const targetY = -node.y * targetScale + stageRef.current.height() / 2;
+
+          const { x, y } = clampPosition({ x: targetX, y: targetY }, targetScale);
+
+          console.log(targetScale, x, y)
+          graphGroupRef.current.to({
+            x: x,
+            y: y,
+            scaleX: targetScale,
+            scaleY: targetScale,
+            duration: 0.7,
+            easing: Konva.Easings.EaseInOutCubic
+          });
+          
+          changePinLoc(node)
+        }}
+        /> */}
+      <Map width={window.innerWidth} height={height}/>
+      </div>
+      
+
+      {/* <Stage
+        container="container"
+        width={stageSize.width}
+        ref={stageRef}
+        onContextMenu={(e) => e.evt.preventDefault()}
+      >
+        <Layer>
+          <Group ref={graphGroupRef}>
+            <Image image={bgImage} x={0} y={0} />
+            { edges }
+
+            {
+              pinLoc !== null && <Image image={images.current[2]} x={pinLoc.x} y={pinLoc.y}/>
+            }
+          </Group>
+        </Layer>
+      </Stage> */}
+    </>
+  );
+}
+
+export default App;

@@ -1,0 +1,9 @@
+@import "tailwindcss";
+#root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: Roboto;
+}
