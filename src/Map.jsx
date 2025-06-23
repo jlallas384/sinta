@@ -27,12 +27,17 @@ const floors = [
   ["G", 1],
 ];
 
-function Map({ width }) {
-  const maps = [useImage(baseMap), useImage(mapGround), useImage(mapGround), useImage(mapGround)];
+function Map({ width, handleClick, setMapNum, children }) {
+  const maps = [
+    useImage(baseMap),
+    useImage(mapGround),
+    useImage(mapGround),
+    useImage(mapGround),
+  ];
 
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [height, setHeight] = useState(0)
+  const [height, setHeight] = useState(0);
 
   const pointerStates = useRef({
     lastDist: 0,
@@ -42,9 +47,10 @@ function Map({ width }) {
   });
 
   const stage = useRef(null);
+  const group = useRef(null);
 
-  const [isInteriorActive, setInteriorActive] = useState(true);
-  const [mapNum, setMapNum] = useState(1);
+  const [isInteriorActive, setInteriorActive] = useState(false);
+  const [interiorMapNum, setInteriorMapNum] = useState(1);
 
   function clampPosition({ x, y }) {
     x = Math.max(Math.min(0, x), width - MAP_WIDTH * scale);
@@ -59,17 +65,24 @@ function Map({ width }) {
   }
 
   function changeScale(scale) {
-    scale = clampScale(scale)
-    setScale(scale)
+    scale = clampScale(scale);
+    setScale(scale);
     if (scale * 250 >= height) {
-      setInteriorActive(true)
+      setInteriorActive(true);
+      setMapNum(interiorMapNum);
     } else {
-      setInteriorActive(false)
+      setInteriorActive(false);
+      setMapNum(0);
     }
   }
 
   function changePosition(pos) {
     setPosition(clampPosition(pos));
+  }
+
+  function normalizePos(pos) {
+    const transform = group.current.getAbsoluteTransform().copy().invert();
+    return transform.point(pos);
   }
 
   useEffect(() => {
@@ -133,6 +146,15 @@ function Map({ width }) {
   }
 
   function onTouchEnd() {
+    const pos = stage.current.getPointerPosition();
+
+    if (
+      pos.x == pointerStates.current.clickPos.x &&
+      pos.y == pointerStates.current.clickPos.y
+    ) {
+      handleClick(normalizePos(pos));
+    }
+
     pointerStates.current.lastDist = null;
     pointerStates.current.lastPos = null;
   }
@@ -162,6 +184,13 @@ function Map({ width }) {
 
   function onMouseUp(e) {
     if (e.evt.button === 0) {
+      const pos = stage.current.getPointerPosition();
+      if (
+        pos.x == pointerStates.current.clickPos.x &&
+        pos.y == pointerStates.current.clickPos.y
+      ) {
+        handleClick(normalizePos(pos));
+      }
       pointerStates.current.isDragging = false;
     }
   }
@@ -178,7 +207,7 @@ function Map({ width }) {
       x: (pointer.x - position.x) / oldScale,
       y: (pointer.y - position.y) / oldScale,
     };
-
+    
     const pos = {
       x: pointer.x - mousePointTo.x * newScale,
       y: pointer.y - mousePointTo.y * newScale,
@@ -188,14 +217,17 @@ function Map({ width }) {
     changePosition(pos);
   }
 
-  const map = (!isInteriorActive ? maps[0] : maps[mapNum])[0];
+  const map = (!isInteriorActive ? maps[0] : maps[interiorMapNum])[0];
 
   return (
-    <div className="h-full relative" ref={(node) => {
-      if (node) {
-        setHeight(node.offsetHeight)
-      }
-    }}>
+    <div
+      className="h-full relative"
+      ref={(node) => {
+        if (node) {
+          setHeight(node.offsetHeight);
+        }
+      }}
+    >
       <Stage
         className="absolute"
         ref={stage}
@@ -211,12 +243,14 @@ function Map({ width }) {
       >
         <Layer>
           <Group
+            ref={group}
             x={position.x}
             y={position.y}
             scaleX={scale}
             scaleY={scale}
           >
             <Image image={map} x={0} y={0} />
+            {children}
           </Group>
         </Layer>
       </Stage>
@@ -225,7 +259,7 @@ function Map({ width }) {
         <div className="absolute font-bold text-sm bg-white shadow shadow-gray-600 rounded-full right-3 bottom-5 text-gray-400">
           {floors.map(([txt, id], i) => {
             let className = "p-2 cursor-pointer";
-            if (id === mapNum) {
+            if (id === interiorMapNum) {
               className += " bg-gray-300 text-black";
             }
             if (i === 0) {
@@ -235,7 +269,14 @@ function Map({ width }) {
               className += " rounded-b-full";
             }
             return (
-              <div key={id} className={className} onClick={() => setMapNum(id)}>
+              <div
+                key={id}
+                className={className}
+                onClick={() => {
+                  setInteriorMapNum(id);
+                  setMapNum(id);
+                }}
+              >
                 {txt}
               </div>
             );
