@@ -60,7 +60,7 @@ function MapEditor() {
       {
         node1id: node1.id,
         node2id: node2.id,
-        mapNum: node1.mapNum != node2.mapNum ? -1 : node1.mapNum,
+        mapNum: node1.mapNum != node2.mapNum ? [node1.mapNum, node2.mapNum] : [node1.mapNum],
         id: states.current.edgeId++,
       },
     ]);
@@ -69,8 +69,12 @@ function MapEditor() {
   function importConfig() {
     const json = JSON.parse(config);
     console.log(json);
+    states.current.nodeId = json.nodes.reduce((max, {id}) => Math.max(max, id), 0) + 1
     setNodes(json.nodes);
+
+    states.current.edgeId = json.nodes.reduce((max, {id}) => Math.max(max, id), 0) + 1
     setEdges(json.edges);
+    
     setLandmarks(json.landmarks);
   }
 
@@ -96,7 +100,7 @@ function MapEditor() {
       >
         <Map width={mapWidth} setMapNum={setMapNum} handleClick={handleClick}>
           {edges
-            .filter((edge) => edge.mapNum == -1 || edge.mapNum == mapNum)
+            .filter((edge) => edge.mapNum[0] == mapNum || edge.mapNum[1] == mapNum)
             .map(({ node1id, node2id, id }) => {
               const node1 = nodes.find(({ id }) => id == node1id);
               const node2 = nodes.find(({ id }) => id == node2id);
