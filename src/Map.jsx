@@ -207,7 +207,7 @@ function Map({ width, handleClick, setMapNum, children }) {
       x: (pointer.x - position.x) / oldScale,
       y: (pointer.y - position.y) / oldScale,
     };
-    
+
     const pos = {
       x: pointer.x - mousePointTo.x * newScale,
       y: pointer.y - mousePointTo.y * newScale,

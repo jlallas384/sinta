@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Circle, Line } from "react-konva";
 import Map from "./Map";
 
@@ -60,7 +60,10 @@ function MapEditor() {
       {
         node1id: node1.id,
         node2id: node2.id,
-        mapNum: node1.mapNum != node2.mapNum ? [node1.mapNum, node2.mapNum] : [node1.mapNum],
+        mapNum:
+          node1.mapNum != node2.mapNum
+            ? [node1.mapNum, node2.mapNum]
+            : [node1.mapNum],
         id: states.current.edgeId++,
       },
     ]);
@@ -69,12 +72,14 @@ function MapEditor() {
   function importConfig() {
     const json = JSON.parse(config);
     console.log(json);
-    states.current.nodeId = json.nodes.reduce((max, {id}) => Math.max(max, id), 0) + 1
+    states.current.nodeId =
+      json.nodes.reduce((max, { id }) => Math.max(max, id), 0) + 1;
     setNodes(json.nodes);
 
-    states.current.edgeId = json.nodes.reduce((max, {id}) => Math.max(max, id), 0) + 1
+    states.current.edgeId =
+      json.nodes.reduce((max, { id }) => Math.max(max, id), 0) + 1;
     setEdges(json.edges);
-    
+
     setLandmarks(json.landmarks);
   }
 
@@ -86,6 +91,87 @@ function MapEditor() {
     });
     setConfig(json);
   }
+
+  const filteredNodes = useMemo(() => {
+    return nodes.filter((node) => node.mapNum == mapNum)
+  }, [nodes, mapNum])
+
+  const nodeElements = useMemo(() => {
+    return filteredNodes
+      .map(({ x, y, id }) => {
+        return (
+          <Circle
+            x={x}
+            y={y}
+            stroke={(() => {
+              if (activeNode == id) return "#88E788";
+              if (findLandmark(id)) return "#FF474D";
+              return "#90D5FF";
+            })()}
+            strokeWidth={0.5}
+            fill="white"
+            width={1.5}
+            key={id}
+            onClick={(e) => {
+              if (mode == "add-node") {
+                if (e.evt.button == 2) {
+                  setEdges(
+                    edges.filter(
+                      ({ node1id, node2id }) => node1id != id && node2id != id
+                    )
+                  );
+                  setNodes(nodes.filter((node) => node.id !== id));
+                }
+              } else if (mode == "add-edge") {
+                if (e.evt.button == 0) {
+                  if (activeNode == id) {
+                    changeActiveNode(null);
+                  } else {
+                    if (activeNode === null) {
+                      changeActiveNode(id);
+                    } else {
+                      createEdge(id, activeNode);
+                      changeActiveNode(null);
+                    }
+                  }
+                }
+              } else {
+                if (e.evt.button == 0) {
+                  changeActiveNode(activeNode == id ? null : id);
+                }
+              }
+            }}
+          />
+        );
+      });
+  }, [filteredNodes, landmarks, activeNode, mode]);
+
+  const filteredEdges = useMemo(() => {
+    return edges
+      .filter((edge) => edge.mapNum[0] == mapNum || edge.mapNum[1] == mapNum)
+  }, [edges, mapNum])
+
+  const edgeElements = useMemo(() => {
+      return filteredEdges
+      .map(({ node1id, node2id, id }) => {
+        const node1 = nodes.find(({ id }) => id == node1id);
+        const node2 = nodes.find(({ id }) => id == node2id);
+
+        return (
+          <Line
+            points={[node1.x, node1.y, node2.x, node2.y]}
+            stroke="#90D5FF"
+            strokeWidth={1}
+            key={id}
+            onClick={(e) => {
+              if (mode == "add-edge" && e.evt.button == 0) {
+                setEdges(edges.filter((edge) => edge.id != id));
+              }
+            }}
+          />
+        );
+      });
+  }, [filteredNodes, filteredEdges, mode]);
 
   return (
     <div className="h-screen flex">
@@ -99,76 +185,9 @@ function MapEditor() {
         onContextMenu={(e) => e.preventDefault()}
       >
         <Map width={mapWidth} setMapNum={setMapNum} handleClick={handleClick}>
-          {edges
-            .filter((edge) => edge.mapNum[0] == mapNum || edge.mapNum[1] == mapNum)
-            .map(({ node1id, node2id, id }) => {
-              const node1 = nodes.find(({ id }) => id == node1id);
-              const node2 = nodes.find(({ id }) => id == node2id);
+          {edgeElements}
 
-              return (
-                <Line
-                  points={[node1.x, node1.y, node2.x, node2.y]}
-                  stroke="#90D5FF"
-                  strokeWidth={1}
-                  key={id}
-                  onClick={(e) => {
-                    if (mode == 'add-edge' && e.evt.button == 0) {
-                      setEdges(edges.filter(edge => edge.id != id))
-                    }
-                  }}
-                />
-              );
-            })}
-
-          {nodes
-            .filter((node) => node.mapNum == mapNum)
-            .map(({ x, y, id }) => {
-              return (
-                <Circle
-                  x={x}
-                  y={y}
-                  stroke={(() => {
-                    if (activeNode == id) return "#88E788"
-                    if (findLandmark(id)) return "#FF474D"
-                    return "#90D5FF"
-                  })()}
-                  strokeWidth={0.5}
-                  fill="white"
-                  width={1.5}
-                  key={id}
-                  onClick={(e) => {
-                    if (mode == "add-node") {
-                      if (e.evt.button == 2) {
-                        setEdges(
-                          edges.filter(
-                            ({ node1id, node2id }) =>
-                              node1id != id && node2id != id
-                          )
-                        );
-                        setNodes(nodes.filter((node) => node.id !== id));
-                      }
-                    } else if (mode == "add-edge") {
-                      if (e.evt.button == 0) {
-                        if (activeNode == id) {
-                          changeActiveNode(null);
-                        } else {
-                          if (activeNode === null) {
-                            changeActiveNode(id);
-                          } else {
-                            createEdge(id, activeNode);
-                            changeActiveNode(null);
-                          }
-                        }
-                      }
-                    } else {
-                      if (e.evt.button == 0) {
-                        changeActiveNode(activeNode == id ? null : id);
-                      }
-                    }
-                  }}
-                />
-              );
-            })}
+          {nodeElements}
         </Map>
       </div>
       <div className="w-1/5 p-5 bg-blue-400">
@@ -221,7 +240,7 @@ function MapEditor() {
           </label>
         </div>
 
-        {activeNode !== null && mode == 'add-landmark' && (
+        {activeNode !== null && mode == "add-landmark" && (
           <>
             <input
               value={landmarkName}
@@ -234,11 +253,14 @@ function MapEditor() {
             <button
               className="w-full text-white bg-blue-700 p-2 mt-2 rounded-md cursor-pointer hover:bg-blue-500 transition"
               onClick={() => {
-                setLandmarks([...landmarks.filter(({id}) => id != activeNode), {
-                  name: landmarkName,
-                  id: activeNode
-                }])
-                setActiveNode(null)
+                setLandmarks([
+                  ...landmarks.filter(({ id }) => id != activeNode),
+                  {
+                    name: landmarkName,
+                    id: activeNode,
+                  },
+                ]);
+                setActiveNode(null);
               }}
             >
               Set Landmark Name
