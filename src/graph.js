@@ -8,12 +8,12 @@ function includeLandmark(node) {
   return node;
 }
 
-export function findNearestNode({ x, y }) {
+export function findNearestNode({ x, y }, mapNum) {
   let minDist = Infinity;
   let nearest = null;
   for (const node of graphData.nodes) {
     const dist = Math.hypot(node.x - x, node.y - y);
-    if (dist < minDist) {
+    if (dist < minDist && node.mapNum == mapNum) {
       minDist = dist;
       nearest = node;
     }
