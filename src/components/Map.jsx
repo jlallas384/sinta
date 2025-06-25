@@ -23,7 +23,6 @@ function getCenter(p1, p2) {
 }
 
 const floors = [
-  ["3", 3],
   ["2", 2],
   ["G", 1],
 ];
@@ -32,7 +31,6 @@ function Map({ width, handleClick, setMapNum, children }) {
   const maps = [
     useImage(baseMap),
     useImage(mapGround),
-    useImage(map2nd),
     useImage(map2nd),
   ];
 
