@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Map from "../components/Map";
 import Fuse from "fuse.js";
 
@@ -8,7 +8,7 @@ import { findNearestNode, getNodeById } from "../graph";
 import { Line } from "react-konva";
 
 import { dijkstra } from "../graph";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 
 import { StartPin, EndPin } from "../components/Pins";
 
@@ -17,7 +17,7 @@ const fuse = new Fuse(graphData.landmarks, {
   threshold: 0.3,
 });
 
-function EmergencyRoute() {
+function LostItemNavigate() {
   const [focus, setFocus] = useState(false);
   const [source, setSource] = useState("");
   const [results, setResults] = useState([]);
@@ -25,7 +25,19 @@ function EmergencyRoute() {
   const [sourceNode, setSourceNode] = useState(null);
   const [mapNum, setMapNum] = useState(0);
 
-  const destinationNode = getNodeById(962);
+  const params = useParams()
+
+  const [destinationNode, setDestinationNode] = useState(null)
+
+  useEffect(() => {
+    async function loadData() {
+      const response = await fetch(`/api/lost/${params.itemid}`)
+      const json = await response.json()
+      setDestinationNode(getNodeById(json.nodeid))
+    }
+
+    loadData()
+  }, [])
 
   function onChange(e) {
     const value = e.target.value;
@@ -99,7 +111,7 @@ function EmergencyRoute() {
         <div className="flex flex-col items-center py-5 gap-3 w-full bg-white">
           <div className="flex items-center gap-3 w-11/12 max-w-xl">
             <div className="w-6">
-              <Link to="/" className="block cursor-pointer">
+              <Link to={`/lost/${params.itemid}`} className="block cursor-pointer">
                 <svg
                   width="26"
                   height="26"
@@ -179,9 +191,9 @@ function EmergencyRoute() {
               destinationNode &&
               makeRoute(sourceNode.id, destinationNode.id)}
 
-            {sourceNode && <StartPin x={sourceNode.x} y={sourceNode.y}/> }
+            {sourceNode && <StartPin x={sourceNode.x} y={sourceNode.y} />}
 
-            {destinationNode && <EndPin x={destinationNode.x} y={destinationNode.y} /> }
+            {destinationNode && <EndPin x={destinationNode.x} y={destinationNode.y} />}
           </Map>
         </div>
       </div>
@@ -189,4 +201,4 @@ function EmergencyRoute() {
   );
 }
 
-export default EmergencyRoute;
+export default LostItemNavigate;

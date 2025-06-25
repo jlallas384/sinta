@@ -23,12 +23,12 @@ function Welcome() {
         <div className="flex flex-col w-full gap-3">
           <p className="text-white text-xs">Choose Feature:</p>
 
-          <Link to="/shortest" className="bg-yellow-300 text-center py-1.5 rounded-md font-semibold border-black border hover:bg-yellow-400">Shortest Route</Link>
+          <Link to="/find-route" className="bg-yellow-300 text-center py-1.5 rounded-md font-semibold border-black border hover:bg-yellow-400">Shortest Route</Link>
 
-          <Link to="/emergency" className="bg-yellow-300 text-center py-1.5 rounded-md font-semibold border-black border hover:bg-yellow-400">Emergency Route</Link>
+          <Link to="/emergency-route" className="bg-yellow-300 text-center py-1.5 rounded-md font-semibold border-black border hover:bg-yellow-400">Emergency Route</Link>
 
           
-          <Link to="/lost" className="bg-yellow-300 text-center py-1.5 rounded-md font-semibold border-black border hover:bg-yellow-400">Lost and Found</Link>
+          <Link to="/lost-and-found" className="bg-yellow-300 text-center py-1.5 rounded-md font-semibold border-black border hover:bg-yellow-400">Lost and Found</Link>
         </div>
 
       </div>

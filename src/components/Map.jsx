@@ -226,6 +226,7 @@ function Map({ width, handleClick, setMapNum, children }) {
       className="h-full relative"
       ref={(node) => {
         if (node && height == 0) {
+
           setHeight(node.offsetHeight);
         }
       }}
