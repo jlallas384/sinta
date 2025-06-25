@@ -134,7 +134,7 @@ function ShortestRoute() {
                 )}
 
                 {activeInput == 0 && (
-                  <Link to="/" className="block cursor-pointer">
+                  <Link to="/features" className="block cursor-pointer">
                     <svg
                       width="26"
                       height="26"

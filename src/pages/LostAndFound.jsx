@@ -4,7 +4,7 @@ function LostAndFound() {
   return (
     <div className="flex flex-col items-center">
       <div className="py-5 px-5 w-full max-w-xl">
-        <Link to="/">
+        <Link to="/features">
           <svg
             width="14"
             height="22"

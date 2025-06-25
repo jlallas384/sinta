@@ -1,6 +1,7 @@
 import MapEditor from "./pages/MapEditor";
 import ShortestRoute from "./pages/ShortestRoute"
 import EmergencyRoute from "./pages/EmergencyRoute";
+import Index from "./pages/Index";
 import Welcome from "./pages/Welcome";
 
 import { BrowserRouter, Routes, Route} from "react-router";
@@ -15,7 +16,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route index element={<Welcome/>} />
+        <Route index element={<Index/>} />
+        
+        <Route path="features" element={<Welcome/>} />
         <Route path="find-route" element={<ShortestRoute/>} />
         <Route path="emergency-route" element={<EmergencyRoute/>} />
         <Route path="lost-and-found" element={<LostAndFound/>} />

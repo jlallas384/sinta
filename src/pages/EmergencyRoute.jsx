@@ -99,7 +99,7 @@ function EmergencyRoute() {
         <div className="flex flex-col items-center py-5 gap-3 w-full bg-white">
           <div className="flex items-center gap-3 w-11/12 max-w-xl">
             <div className="w-6">
-              <Link to="/" className="block cursor-pointer">
+              <Link to="/features" className="block cursor-pointer">
                 <svg
                   width="26"
                   height="26"
