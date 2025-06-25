@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import useImage from "use-image";
 import { Stage, Layer, Image } from "react-konva";
 
@@ -87,11 +87,6 @@ function Map({ width, handleClick, setMapNum, children }) {
     return transform.point(pos);
   }
 
-  useEffect(() => {
-    const initScale = Math.max(height / MAP_HEIGHT, width / MAP_WIDTH);
-    setScale(initScale);
-  }, [height]);
-
   function onTouchStart(e) {
     if (e.evt.touches.length === 2) {
       pointerStates.current.lastDist = getDistance(
@@ -169,7 +164,7 @@ function Map({ width, handleClick, setMapNum, children }) {
     }
   }
 
-  function onMouseMove(e) {
+  function onMouseMove() {
     if (!pointerStates.current.isDragging) return;
     const stagePos = stage.current.getPointerPosition();
     const dx = stagePos.x - pointerStates.current.lastPos.x;
@@ -226,8 +221,9 @@ function Map({ width, handleClick, setMapNum, children }) {
       className="h-full relative"
       ref={(node) => {
         if (node && height == 0) {
-
           setHeight(node.offsetHeight);
+          const initScale = Math.max(node.offsetHeight / MAP_HEIGHT, width / MAP_WIDTH);
+          setScale(initScale);
         }
       }}
     >

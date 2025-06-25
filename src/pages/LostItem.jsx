@@ -1,22 +1,21 @@
-import { Link, useParams } from "react-router";
-import Map from "../components/Map";
+import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
 
-
 function LostItem() {
-  const params = useParams()
+  const params = useParams();
+  const navigate = useNavigate()
 
-  const [data, setData] = useState({})
+  const [data, setData] = useState({});
 
   useEffect(() => {
     async function loadData() {
-      const response = await fetch(`/api/lost/${params.itemid}`)
-      const json = await response.json()
-      setData(json)
+      const response = await fetch(`/api/lost/${params.itemid}`);
+      const json = await response.json();
+      setData(json);
     }
 
-    loadData()
-  }, [])
+    loadData();
+  }, []);
   return (
     <div className="flex flex-col" style={{ height: "90vh" }}>
       <div className="py-5 px-5 w-full max-w-xl self-center">
@@ -37,12 +36,15 @@ function LostItem() {
       </div>
       <div className="flex flex-col items-center w-full max-w-xl mx-auto gap-10">
         <div className="flex flex-col w-6/12 items-center gap-2">
-          <img src={data.imageData} className="border-white shadow-lg border rounded-lg"/>
+          <img
+            src={data.imageData}
+            className="border-white shadow-lg border rounded-lg"
+          />
         </div>
 
         <div className="flex flex-col items-center gap-5 w-full">
           <h1 className="text-white text-lg mt-3 text-center ">
-          Name of Guard: {data.guardName}
+            Name of Guard: {data.guardName}
           </h1>
 
           <Link
@@ -51,6 +53,18 @@ function LostItem() {
           >
             Navigate
           </Link>
+
+          <button
+            className="w-10/12 bg-yellow-300 text-center py-5 rounded-md font-semibold border-black border hover:bg-yellow-400"
+            onClick={async () => {
+              await fetch(`/api/lost/${params.itemid}`, {
+                method: "DELETE",
+              });
+              navigate('/lost')
+            }}
+          >
+            Found
+          </button>
         </div>
       </div>
     </div>

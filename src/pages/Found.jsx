@@ -1,9 +1,9 @@
-import { href, Link } from "react-router";
+import { Link } from "react-router";
 import Map from "../components/Map";
 import { useState } from "react";
 
-import { EndPin, StartPin } from "../components/Pins";
-import { findNearestNode, getNodeById } from "../graph";
+import { EndPin } from "../components/Pins";
+import { findNearestNode } from "../graph";
 
 function Found() {
   const [mapNum, setMapNum] = useState(0);

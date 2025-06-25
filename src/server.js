@@ -9,7 +9,7 @@ app.use(express.json({limit: '2mb'}))
 
 
 let itemid = 0
-const items = []
+let items = []
 
 app.get('/api/lost', (req, res) => {
     res.json(items.map(item => {
@@ -27,6 +27,13 @@ app.get('/api/lost/:itemid', (req, res) => {
     res.json(item)
 })
 
+app.delete('/api/lost/:itemid', (req, res) => {
+    const {itemid} = req.params
+    items = items.filter(item => item.itemid != itemid)
+    
+    res.json({})
+})
+
 app.post('/api/found', (req, res) => {
     const nodeid = req.body.nodeid
     const imageData = req.body.imageData
@@ -41,11 +48,11 @@ app.post('/api/found', (req, res) => {
 
     res.json({ itemid: itemid - 1 })
 })
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 app.use(express.static(path.resolve(__dirname, '..', 'dist')))
-
 
 
 app.get('/*splat', (req, res) => {
